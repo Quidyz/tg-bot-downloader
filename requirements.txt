@@ -1,0 +1,4 @@
+aiogram>=3.15
+yt-dlp>=2025.1.15
+pydantic-settings>=2.6
+aiosqlite>=0.20
