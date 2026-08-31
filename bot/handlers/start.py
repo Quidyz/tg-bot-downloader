@@ -17,7 +17,8 @@ START_TEXT = (
     "• TikTok\n"
     "• Instagram\n"
     "• YouTube\n"
-    "• Pinterest"
+    "• Pinterest\n"
+    "• X (Twitter)"
 )
 
 

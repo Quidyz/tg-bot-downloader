@@ -17,6 +17,10 @@ PLATFORM_PATTERNS: dict[str, re.Pattern] = {
         r"https?://(?:[a-z]{2,3}\.)?(?:pinterest\.[a-z.]{2,6}|pin\.it)/\S+",
         re.IGNORECASE,
     ),
+    "twitter": re.compile(
+        r"https?://(?:www\.|mobile\.)?(?:twitter\.com|x\.com)/(?:i/(?:web/)?status|\w{1,15}/status(?:es)?)/\d+\S*",
+        re.IGNORECASE,
+    ),
 }
 
 

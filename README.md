@@ -1,6 +1,6 @@
 # Telegram-бот для скачивания медиа
 
-Бот скачивает видео/фото/аудио из **TikTok, Instagram, YouTube, Pinterest**.
+Бот скачивает видео/фото/гиф/аудио из **TikTok, Instagram, YouTube, Pinterest, X (Twitter)**.
 Отправь боту ссылку — он ответит реплаем: видео в лучшем качестве + отдельно mp3.
 Файлы до **2 ГБ** (через локальный сервер Telegram Bot API).
 
@@ -39,7 +39,8 @@ docker compose logs -f bot
 
 ## Запуск без Docker (для разработки)
 
-Нужны Python 3.12+ и ffmpeg в PATH. Без локального Bot API сервера
+Нужны Python 3.12+, ffmpeg и deno в PATH (deno обязателен для YouTube),
+плюс `pip install gallery-dl` для картинок Pinterest и фото-твитов. Без локального Bot API сервера
 действует лимит отправки 50 МБ (оставь `TELEGRAM_API_BASE` пустым).
 
 ```bash

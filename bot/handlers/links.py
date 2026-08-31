@@ -71,7 +71,7 @@ async def handle_link(
     result: DownloadResult | None = None
     try:
         async with _semaphore(config):
-            result = await asyncio.to_thread(download, url)
+            result = await asyncio.to_thread(download, url, platform)
 
         caption, keyboard = await _build_caption(repo, result, is_privileged)
 
@@ -112,6 +112,11 @@ async def handle_link(
                 if ad_text:
                     await message.answer(html.escape(ad_text), reply_markup=keyboard)
 
+        for gif_path in result.gif_paths[:10]:
+            await message.reply_animation(
+                FSInputFile(gif_path), request_timeout=UPLOAD_TIMEOUT
+            )
+
         await repo.add_download(user_id, platform)
         await _delete_silent(status)
     except UnsupportedContentError:
@@ -140,7 +145,7 @@ async def check_sub(callback: CallbackQuery) -> None:
 @router.message(F.chat.type == ChatType.PRIVATE, F.text)
 async def hint(message: Message) -> None:
     await message.reply(
-        "Не вижу здесь ссылки на TikTok, Instagram, YouTube или Pinterest 🤔\n"
+        "Не вижу здесь ссылки на TikTok, Instagram, YouTube, Pinterest или X (Twitter) 🤔\n"
         "Отправь мне ссылку на видео или фото — и я его скачаю."
     )
 
