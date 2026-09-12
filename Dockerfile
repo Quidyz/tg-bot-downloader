@@ -16,6 +16,10 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt \
     && pip install --no-cache-dir -U yt-dlp gallery-dl
 
+# Threads не поддерживается ни yt-dlp, ни gallery-dl — threads-dl рендерит
+# страницу поста headless-браузером, отсюда Chromium в образе.
+RUN playwright install --with-deps chromium
+
 COPY bot ./bot
 
 CMD ["python", "-m", "bot.main"]

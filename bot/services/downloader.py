@@ -1,12 +1,15 @@
+import asyncio
 import logging
 import os
-import re
 import shutil
 import subprocess
 import tempfile
 from dataclasses import dataclass, field
 from typing import Any
 
+from threads_dl import ThreadsDlError
+from threads_dl import download_media as threads_download_media
+from threads_dl import extract_post as threads_extract_post
 from yt_dlp import YoutubeDL
 
 logger = logging.getLogger(__name__)
@@ -19,7 +22,7 @@ IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".webp"}
 GIF_EXTS = {".gif"}
 
 # Платформы, где фото-контент yt-dlp не умеет — пробуем gallery-dl
-GALLERY_DL_PLATFORMS = {"pinterest", "twitter", "instagram", "tiktok", "threads"}
+GALLERY_DL_PLATFORMS = {"pinterest", "twitter", "instagram", "tiktok"}
 
 
 class UnsupportedContentError(Exception):
@@ -173,10 +176,16 @@ def download(url: str, platform: str = "", max_height: int | None = None) -> Dow
 
     Вызывающий обязан удалить result.temp_dir после отправки.
     """
-    if platform == "threads":
-        # yt-dlp/gallery-dl знают только про threads.net — threads.com это алиас Meta
-        url = re.sub(r"threads\.com", "threads.net", url, flags=re.IGNORECASE)
     temp_dir = tempfile.mkdtemp(prefix="tgdl_")
+    if platform == "threads":
+        # Ни yt-dlp, ни gallery-dl не поддерживают Threads вообще —
+        # пробовать их бессмысленно, сразу идём через threads-dl (Playwright).
+        try:
+            return _download_threads(url, temp_dir)
+        except Exception:
+            _cleanup_silent(temp_dir)
+            raise
+
     try:
         return _download_ytdlp(url, temp_dir, max_height)
     except Exception as ytdlp_error:
@@ -191,6 +200,27 @@ def download(url: str, platform: str = "", max_height: int | None = None) -> Dow
             return result
         _cleanup_silent(temp_dir)
         raise ytdlp_error
+
+
+def _download_threads(url: str, temp_dir: str) -> DownloadResult:
+    async def _run() -> DownloadResult:
+        post = await threads_extract_post(url)
+        result = DownloadResult(
+            temp_dir=temp_dir,
+            title=post.content[:800],
+            uploader=post.author.username,
+        )
+        await threads_download_media(post, temp_dir)
+        _collect_files(temp_dir, result)
+        if not result.video_path and not result.image_paths and not result.gif_paths:
+            raise UnsupportedContentError(url)
+        return result
+
+    try:
+        return asyncio.run(_run())
+    except ThreadsDlError as e:
+        logger.info("threads-dl не справился с %s: %s", url, e)
+        raise UnsupportedContentError(url) from e
 
 
 def _download_ytdlp(
