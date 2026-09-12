@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 import shutil
 import subprocess
 import tempfile
@@ -172,6 +173,9 @@ def download(url: str, platform: str = "", max_height: int | None = None) -> Dow
 
     Вызывающий обязан удалить result.temp_dir после отправки.
     """
+    if platform == "threads":
+        # yt-dlp/gallery-dl знают только про threads.net — threads.com это алиас Meta
+        url = re.sub(r"threads\.com", "threads.net", url, flags=re.IGNORECASE)
     temp_dir = tempfile.mkdtemp(prefix="tgdl_")
     try:
         return _download_ytdlp(url, temp_dir, max_height)
