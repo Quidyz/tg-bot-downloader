@@ -23,6 +23,7 @@ PLATFORM_TITLES = {
     "instagram": "Instagram",
     "youtube": "YouTube",
     "pinterest": "Pinterest",
+    "threads": "Threads",
 }
 
 # Редактируемые значения: key -> (заголовок кнопки, подсказка при вводе)
@@ -87,7 +88,8 @@ async def cmd_admin(message: Message, state: FSMContext) -> None:
 @router.callback_query(F.data == "adm:main")
 async def cb_main(callback: CallbackQuery, state: FSMContext) -> None:
     await state.clear()
-    await callback.message.edit_text("🛠 <b>Админ-панель</b>", reply_markup=_main_menu())
+    if isinstance(callback.message, Message):
+        await callback.message.edit_text("🛠 <b>Админ-панель</b>", reply_markup=_main_menu())
     await callback.answer()
 
 
@@ -112,9 +114,10 @@ async def cb_stats(callback: CallbackQuery, repo: Repo) -> None:
         f"⭐ Активных Premium: {s['premium_active']}\n"
         f"✅ В белом списке: {s['whitelisted']}"
     )
-    await callback.message.edit_text(
-        text, reply_markup=InlineKeyboardMarkup(inline_keyboard=[_back_button()])
-    )
+    if isinstance(callback.message, Message):
+        await callback.message.edit_text(
+            text, reply_markup=InlineKeyboardMarkup(inline_keyboard=[_back_button()])
+        )
     await callback.answer()
 
 
@@ -123,11 +126,12 @@ async def cb_stats(callback: CallbackQuery, repo: Repo) -> None:
 @router.callback_query(F.data == "adm:access")
 async def cb_access(callback: CallbackQuery, state: FSMContext) -> None:
     await state.set_state(AdminStates.waiting_user)
-    await callback.message.edit_text(
-        "👤 Пришли <b>ID</b> или <b>@username</b> пользователя,\n"
-        "либо перешли сюда любое его сообщение.",
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=[_back_button()]),
-    )
+    if isinstance(callback.message, Message):
+        await callback.message.edit_text(
+            "👤 Пришли <b>ID</b> или <b>@username</b> пользователя,\n"
+            "либо перешли сюда любое его сообщение.",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[_back_button()]),
+        )
     await callback.answer()
 
 
@@ -160,6 +164,9 @@ async def receive_user(message: Message, state: FSMContext, repo: Repo) -> None:
 
 async def _show_user_card(message_or_cb_message: Message, repo: Repo, user_id: int) -> None:
     user = await repo.get_user(user_id)
+    if user is None:
+        await message_or_cb_message.answer("Пользователь не найден.")
+        return
     name = html.escape(user["first_name"] or "")
     username = f"@{user['username']}" if user["username"] else "—"
     premium = "нет"
@@ -198,8 +205,13 @@ async def _show_user_card(message_or_cb_message: Message, repo: Repo, user_id: i
 
 @router.callback_query(F.data.startswith("adm:wl:"))
 async def cb_toggle_whitelist(callback: CallbackQuery, repo: Repo) -> None:
+    if not callback.data:
+        return
     user_id = int(callback.data.split(":")[2])
     user = await repo.get_user(user_id)
+    if user is None:
+        await callback.answer("Пользователь не найден", show_alert=True)
+        return
     new_value = not bool(user["is_whitelisted"])
     await repo.set_whitelist(user_id, new_value)
     await callback.answer("Добавлен в белый список ✅" if new_value else "Убран из белого списка")
@@ -208,6 +220,8 @@ async def cb_toggle_whitelist(callback: CallbackQuery, repo: Repo) -> None:
 
 @router.callback_query(F.data.startswith("adm:prem:"))
 async def cb_grant_premium(callback: CallbackQuery, repo: Repo) -> None:
+    if not callback.data:
+        return
     user_id = int(callback.data.split(":")[2])
     days = await repo.get_setting_int("premium_days")
     until = await repo.grant_premium(user_id, days)
@@ -217,6 +231,8 @@ async def cb_grant_premium(callback: CallbackQuery, repo: Repo) -> None:
 
 @router.callback_query(F.data.startswith("adm:unprem:"))
 async def cb_revoke_premium(callback: CallbackQuery, repo: Repo) -> None:
+    if not callback.data:
+        return
     user_id = int(callback.data.split(":")[2])
     await repo.revoke_premium(user_id)
     await callback.answer("Premium снят")
@@ -224,6 +240,8 @@ async def cb_revoke_premium(callback: CallbackQuery, repo: Repo) -> None:
 
 
 async def _refresh_user_card(callback: CallbackQuery, repo: Repo, user_id: int) -> None:
+    if not isinstance(callback.message, Message):
+        return
     try:
         await callback.message.delete()
     except Exception:
@@ -265,12 +283,16 @@ async def _settings_view(repo: Repo) -> tuple[str, InlineKeyboardMarkup]:
 async def cb_settings(callback: CallbackQuery, repo: Repo, state: FSMContext) -> None:
     await state.clear()
     text, keyboard = await _settings_view(repo)
-    await callback.message.edit_text(text, reply_markup=keyboard)
+    if isinstance(callback.message, Message):
+        await callback.message.edit_text(text, reply_markup=keyboard)
     await callback.answer()
 
 
 @router.callback_query(F.data.startswith("adm:toggle:"))
 async def cb_toggle(callback: CallbackQuery, repo: Repo) -> None:
+    if not callback.data:
+        await callback.answer()
+        return
     key = callback.data.split(":")[2]
     if key not in TOGGLES:
         await callback.answer()
@@ -278,11 +300,15 @@ async def cb_toggle(callback: CallbackQuery, repo: Repo) -> None:
     new_value = await repo.toggle_setting(key)
     await callback.answer(f"{TOGGLES[key]}: {'включено 🟢' if new_value else 'выключено 🔴'}")
     text, keyboard = await _settings_view(repo)
-    await callback.message.edit_text(text, reply_markup=keyboard)
+    if isinstance(callback.message, Message):
+        await callback.message.edit_text(text, reply_markup=keyboard)
 
 
 @router.callback_query(F.data.startswith("adm:edit:"))
 async def cb_edit(callback: CallbackQuery, state: FSMContext) -> None:
+    if not callback.data:
+        await callback.answer()
+        return
     key = callback.data.split(":")[2]
     if key not in EDITABLE_SETTINGS:
         await callback.answer()
@@ -290,12 +316,13 @@ async def cb_edit(callback: CallbackQuery, state: FSMContext) -> None:
     await state.set_state(AdminStates.waiting_value)
     await state.update_data(setting_key=key)
     _, prompt = EDITABLE_SETTINGS[key]
-    await callback.message.answer(
-        prompt,
-        reply_markup=InlineKeyboardMarkup(
-            inline_keyboard=[[InlineKeyboardButton(text="Отмена", callback_data="adm:settings")]]
-        ),
-    )
+    if isinstance(callback.message, Message):
+        await callback.message.answer(
+            prompt,
+            reply_markup=InlineKeyboardMarkup(
+                inline_keyboard=[[InlineKeyboardButton(text="Отмена", callback_data="adm:settings")]]
+            ),
+        )
     await callback.answer()
 
 
@@ -305,6 +332,8 @@ async def receive_value(message: Message, state: FSMContext, repo: Repo) -> None
     key = data.get("setting_key")
     if key not in EDITABLE_SETTINGS:
         await state.clear()
+        return
+    if not message.text:
         return
 
     value = message.text.strip()

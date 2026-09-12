@@ -4,6 +4,7 @@ import shutil
 import subprocess
 import tempfile
 from dataclasses import dataclass, field
+from typing import Any
 
 from yt_dlp import YoutubeDL
 
@@ -17,7 +18,7 @@ IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".webp"}
 GIF_EXTS = {".gif"}
 
 # Платформы, где фото-контент yt-dlp не умеет — пробуем gallery-dl
-GALLERY_DL_PLATFORMS = {"pinterest", "twitter", "instagram", "tiktok"}
+GALLERY_DL_PLATFORMS = {"pinterest", "twitter", "instagram", "tiktok", "threads"}
 
 
 class UnsupportedContentError(Exception):
@@ -61,14 +62,14 @@ class ProbeResult:
 
 def probe_youtube(url: str) -> ProbeResult:
     """Получает метаданные и список форматов без скачивания. Блокирующая."""
-    opts = {
+    opts: dict[str, Any] = {
         "quiet": True,
         "no_warnings": True,
         "noplaylist": True,
         "socket_timeout": 30,
         "retries": 3,
     }
-    with YoutubeDL(opts) as ydl:
+    with YoutubeDL(opts) as ydl:  # type: ignore[arg-type]
         info = ydl.extract_info(url, download=False)
     if info is None:
         raise UnsupportedContentError(url)
@@ -123,7 +124,7 @@ def download_mp3(url: str) -> DownloadResult:
     Вызывающий обязан удалить result.temp_dir после отправки.
     """
     temp_dir = tempfile.mkdtemp(prefix="tgdl_")
-    opts = {
+    opts: dict[str, Any] = {
         "outtmpl": os.path.join(temp_dir, "%(autonumber)03d.%(ext)s"),
         "format": "bestaudio/best",
         "postprocessors": [
@@ -142,7 +143,7 @@ def download_mp3(url: str) -> DownloadResult:
         "retries": 3,
     }
     try:
-        with YoutubeDL(opts) as ydl:
+        with YoutubeDL(opts) as ydl:  # type: ignore[arg-type]
             info = ydl.extract_info(url, download=True)
     except Exception:
         _cleanup_silent(temp_dir)
@@ -198,7 +199,7 @@ def _download_ytdlp(
         )
     else:
         fmt = "bestvideo*+bestaudio/best"
-    opts = {
+    opts: dict[str, Any] = {
         "outtmpl": os.path.join(temp_dir, "%(autonumber)03d.%(ext)s"),
         # Лучшее разрешение; при равном разрешении предпочитаем h264/aac —
         # такие файлы Telegram стримит без проблем.
@@ -216,7 +217,7 @@ def _download_ytdlp(
         "socket_timeout": 30,
         "retries": 3,
     }
-    with YoutubeDL(opts) as ydl:
+    with YoutubeDL(opts) as ydl: # type: ignore[arg-type]
         info = ydl.extract_info(url, download=True)
 
     if info is None:

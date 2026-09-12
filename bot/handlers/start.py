@@ -18,7 +18,8 @@ START_TEXT = (
     "• Instagram\n"
     "• YouTube\n"
     "• Pinterest\n"
-    "• X (Twitter)"
+    "• X (Twitter)\n"
+    "• Threads\n"
 )
 
 

@@ -14,6 +14,7 @@ from aiogram.types import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
     InputMediaPhoto,
+    MediaUnion,
     Message,
 )
 from yt_dlp.utils import DownloadError
@@ -85,6 +86,8 @@ async def handle_link(
     config: Config,
     is_privileged: bool = False,
 ) -> None:
+    if message.from_user is None:
+        return
     user_id = message.from_user.id
     if user_id in _active_users:
         await message.reply("⏳ Я ещё качаю твоё предыдущее видео, подожди немного.")
@@ -127,7 +130,7 @@ async def handle_link(
                 )
 
         if result.image_paths:
-            media = [
+            media: list[MediaUnion] = [
                 InputMediaPhoto(
                     media=FSInputFile(path),
                     caption=caption if i == 0 and not result.video_path else None,
@@ -165,6 +168,8 @@ async def handle_link(
 
 
 async def _youtube_menu(message: Message, url: str, is_privileged: bool) -> None:
+    if message.from_user is None:
+        return
     status = await message.reply("⏳ Получаю информацию о видео…")
     try:
         probe = await asyncio.to_thread(probe_youtube, url)
@@ -245,6 +250,9 @@ def _yt_keyboard(token: str, probe: ProbeResult) -> InlineKeyboardMarkup:
 
 @router.callback_query(F.data.startswith("yt:"))
 async def yt_pick(callback: CallbackQuery, repo: Repo, config: Config) -> None:
+    if callback.data is None:
+        await callback.answer()
+        return
     try:
         _, token, choice = callback.data.split(":", 2)
     except ValueError:
@@ -342,14 +350,14 @@ def _fmt_num(value: int) -> str:
 @router.callback_query(F.data == "check_sub")
 async def check_sub(callback: CallbackQuery) -> None:
     await callback.answer("Отлично! Теперь отправь ссылку ещё раз 👍", show_alert=True)
-    if callback.message:
+    if isinstance(callback.message, Message):
         await _delete_silent(callback.message)
 
 
 @router.message(F.chat.type == ChatType.PRIVATE, F.text)
 async def hint(message: Message) -> None:
     await message.reply(
-        "Не вижу здесь ссылки на TikTok, Instagram, YouTube, Pinterest или X (Twitter) 🤔\n"
+        "Не вижу здесь ссылки на TikTok, Instagram, YouTube, Pinterest, X (Twitter) или Threads 🤔\n"
         "Отправь мне ссылку на видео или фото — и я его скачаю."
     )
 
