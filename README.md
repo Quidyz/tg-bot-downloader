@@ -28,13 +28,13 @@ cp .env.example .env
 ## Запуск (Docker)
 
 ```bash
-docker compose up --build -d
+docker-compose up --build -d
 ```
 
 Логи:
 
 ```bash
-docker compose logs -f bot
+docker-compose logs -f bot
 ```
 
 ## Запуск без Docker (для разработки)
@@ -67,7 +67,7 @@ python -m bot.main
 Соцсети регулярно ломают загрузчики — помогает обновление yt-dlp:
 
 ```bash
-docker compose build --no-cache bot && docker compose up -d
+docker-compose build --no-cache bot && docker-compose up -d
 ```
 
 ## Известные ограничения
