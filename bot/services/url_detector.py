@@ -22,7 +22,7 @@ PLATFORM_PATTERNS: dict[str, re.Pattern] = {
         re.IGNORECASE,
     ),
     "threads": re.compile(
-        r"https?://(?:www\.)?threads\.(?:net|com)/(?:@[\w.]+/post/[\w-]+|t/[\w-]+)",
+        r"https?://(?:www\.)?threads\.(?:net|com)/(?:@[\w.]+/post/[\w-]+|t/[\w-]+|share/[\w-]+)",
         re.IGNORECASE,
     ),
 }
