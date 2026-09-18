@@ -10,15 +10,21 @@ RUN curl -fsSL https://deno.land/install.sh | DENO_INSTALL=/usr/local sh
 
 WORKDIR /app
 
+# Playwright + Chromium — тяжёлый слой (100+ МБ). Ставим его ЗДЕСЬ, раньше и
+# отдельно от requirements.txt, чтобы обновление yt-dlp/gallery-dl/threads-dl
+# ниже не заставляло каждый раз перекачивать браузер заново.
+RUN pip install --no-cache-dir playwright \
+    && playwright install --with-deps chromium
+
 COPY requirements.txt .
-# yt-dlp и gallery-dl ставим без пина: платформы часто ломают экстракторы,
-# при проблемах со скачиванием пересобери образ (docker compose build --no-cache bot)
+# yt-dlp, gallery-dl и threads-dl (git-зависимость в requirements.txt) часто
+# обновляются отдельно от этого файла — Docker не видит новых коммитов по
+# неизменившемуся requirements.txt и переиспользует старый закэшированный слой.
+# ARG ниже форсит пересборку ТОЛЬКО этого слоя (и Chromium выше не трогает):
+#   docker compose build --build-arg CACHEBUST=$(date +%s) bot
+ARG CACHEBUST=1
 RUN pip install --no-cache-dir -r requirements.txt \
     && pip install --no-cache-dir -U yt-dlp gallery-dl
-
-# Threads не поддерживается ни yt-dlp, ни gallery-dl — threads-dl рендерит
-# страницу поста headless-браузером, отсюда Chromium в образе.
-RUN playwright install --with-deps chromium
 
 COPY bot ./bot
 
