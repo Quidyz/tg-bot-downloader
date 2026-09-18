@@ -1,7 +1,7 @@
 FROM python:3.12-slim
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ffmpeg curl unzip ca-certificates \
+    && apt-get install -y --no-install-recommends ffmpeg curl unzip ca-certificates git \
     && rm -rf /var/lib/apt/lists/*
 
 # Deno — JS-рантайм для yt-dlp: без него YouTube не расшифровывает
