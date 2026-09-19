@@ -1,10 +1,10 @@
 import logging
-from typing import Any, Awaitable, Callable
+from collections.abc import Awaitable, Callable
+from typing import Any
 
 from aiogram import BaseMiddleware
 from aiogram.enums import ChatMemberStatus
 from aiogram.types import (
-    CallbackQuery,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
     Message,
@@ -83,7 +83,7 @@ class AccessMiddleware(BaseMiddleware):
     async def _is_subscribed(bot, channel_id: str, user_id: int) -> bool:
         try:
             member = await bot.get_chat_member(channel_id, user_id)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - aiogram raises many error types here
             # Канал недоступен боту (бот не админ канала и т.п.) — не блокируем людей
             logger.warning("Не удалось проверить подписку на %s: %s", channel_id, e)
             return True

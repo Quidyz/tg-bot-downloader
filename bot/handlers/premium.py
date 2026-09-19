@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, timezone
+from datetime import datetime
 
 from aiogram import F, Router
 from aiogram.filters import Command

@@ -173,7 +173,7 @@ async def _youtube_menu(message: Message, url: str, is_privileged: bool) -> None
     status = await message.reply("⏳ Получаю информацию о видео…")
     try:
         probe = await asyncio.to_thread(probe_youtube, url)
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - yt-dlp raises many different error types here
         logger.warning("Не удалось получить информацию о %s: %s", url, e)
         await _edit_status(status, "😔 Не удалось получить информацию о видео. Попробуй позже.")
         return
@@ -197,7 +197,7 @@ async def _youtube_menu(message: Message, url: str, is_privileged: bool) -> None
             await message.reply_photo(probe.thumbnail, caption=text, reply_markup=keyboard)
             sent = True
         except Exception:
-            pass
+            logger.debug("Не удалось отправить превью для %s", url, exc_info=True)
     if not sent:
         await message.reply(text, reply_markup=keyboard)
     await _delete_silent(status)
@@ -398,11 +398,11 @@ async def _edit_status(status: Message, text: str) -> None:
     try:
         await status.edit_text(text)
     except Exception:
-        pass
+        logger.debug("Не удалось обновить статусное сообщение", exc_info=True)
 
 
 async def _delete_silent(message: Message) -> None:
     try:
         await message.delete()
     except Exception:
-        pass
+        logger.debug("Не удалось удалить сообщение", exc_info=True)
