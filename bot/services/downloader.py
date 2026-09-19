@@ -188,7 +188,7 @@ def download(url: str, platform: str = "", max_height: int | None = None) -> Dow
 
     try:
         return _download_ytdlp(url, temp_dir, max_height)
-    except Exception as ytdlp_error:
+    except Exception:
         # Фото-пины Pinterest, фото-твиты и т.п.: yt-dlp видит только видео,
         # поэтому при неудаче пробуем gallery-dl (кроме YouTube — там всегда видео).
         if platform not in GALLERY_DL_PLATFORMS:
@@ -199,7 +199,7 @@ def download(url: str, platform: str = "", max_height: int | None = None) -> Dow
         if result is not None:
             return result
         _cleanup_silent(temp_dir)
-        raise ytdlp_error
+        raise
 
 
 def _download_threads(url: str, temp_dir: str) -> DownloadResult:
@@ -290,7 +290,9 @@ def _download_gallery_dl(url: str, temp_dir: str) -> DownloadResult | None:
         url,
     ]
     try:
-        proc = subprocess.run(cmd, capture_output=True, text=True)
+        # List-form call (no shell=True), so `url` can't break out into shell
+        # syntax — it's passed to gallery-dl as one literal argument.
+        proc = subprocess.run(cmd, capture_output=True, text=True, check=False)  # nosec B603
     except FileNotFoundError:
         logger.warning("gallery-dl не установлен — фоллбэк для фото недоступен")
         return None

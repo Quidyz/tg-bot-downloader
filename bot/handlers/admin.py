@@ -1,5 +1,6 @@
 import html
-from datetime import datetime, timezone
+import logging
+from datetime import datetime
 
 from aiogram import F, Router
 from aiogram.filters import BaseFilter, Command
@@ -15,6 +16,8 @@ from aiogram.types import (
 
 from bot.config import Config
 from bot.db.repo import Repo
+
+logger = logging.getLogger(__name__)
 
 router = Router(name="admin")
 
@@ -245,7 +248,7 @@ async def _refresh_user_card(callback: CallbackQuery, repo: Repo, user_id: int) 
     try:
         await callback.message.delete()
     except Exception:
-        pass
+        logger.debug("Не удалось удалить карточку пользователя", exc_info=True)
     await _show_user_card(callback.message, repo, user_id)
 
 
@@ -339,10 +342,9 @@ async def receive_value(message: Message, state: FSMContext, repo: Repo) -> None
     value = message.text.strip()
     if value == "-":
         value = ""
-    elif key in INT_SETTINGS:
-        if not value.isdigit() or int(value) <= 0:
-            await message.answer("Нужно положительное целое число. Попробуй ещё раз:")
-            return
+    elif key in INT_SETTINGS and (not value.isdigit() or int(value) <= 0):
+        await message.answer("Нужно положительное целое число. Попробуй ещё раз:")
+        return
     await repo.set_setting(key, value)
     await state.clear()
     text, keyboard = await _settings_view(repo)

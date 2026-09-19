@@ -8,6 +8,7 @@
 
 import asyncio
 import sys
+from pathlib import Path
 
 from playwright.async_api import async_playwright
 
@@ -21,11 +22,9 @@ async def main(url: str) -> None:
 
         await page.screenshot(path="/app/data/threads_debug.png", full_page=True)
         html = await page.content()
-        with open("/app/data/threads_debug.html", "w", encoding="utf-8") as f:
-            f.write(html)
+        await asyncio.to_thread(Path("/app/data/threads_debug.html").write_text, html, encoding="utf-8")
         text = await page.evaluate("() => document.body.innerText")
-        with open("/app/data/threads_debug.txt", "w", encoding="utf-8") as f:
-            f.write(text)
+        await asyncio.to_thread(Path("/app/data/threads_debug.txt").write_text, text, encoding="utf-8")
 
         print("final url:", page.url)
         print("body text (first 1500 chars):")

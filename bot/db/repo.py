@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import aiosqlite
 
@@ -18,11 +18,11 @@ DEFAULT_SETTINGS = {
 
 
 def _now() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 def _today_start() -> str:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     return now.replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
 
 
@@ -69,7 +69,7 @@ class Repo:
 
     async def grant_premium(self, user_id: int, days: int) -> datetime:
         user = await self.get_user(user_id)
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         base = now
         if user and user["premium_until"]:
             current = datetime.fromisoformat(user["premium_until"])
@@ -93,7 +93,7 @@ class Repo:
     def is_premium(user: aiosqlite.Row | None) -> bool:
         if not user or not user["premium_until"]:
             return False
-        return datetime.fromisoformat(user["premium_until"]) > datetime.now(timezone.utc)
+        return datetime.fromisoformat(user["premium_until"]) > datetime.now(UTC)
 
     # ---------- downloads ----------
 
@@ -121,7 +121,7 @@ class Repo:
             return row[0]
 
         today = _today_start()
-        week_ago = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
+        week_ago = (datetime.now(UTC) - timedelta(days=7)).isoformat()
         now = _now()
 
         by_platform_cur = await self.conn.execute(
