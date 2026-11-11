@@ -75,7 +75,16 @@ docker-compose logs --tail=100 telegram-bot-api
 
 ### Автозапуск через systemd
 
-Создай unit-файл:
+Дальше `PROJECT_DIR` — абсолютный путь к каталогу, куда ты клонировал
+репозиторий. Укажи свой путь вместо `/path/to/your/project`:
+
+```bash
+export PROJECT_DIR=/path/to/your/project
+cd "$PROJECT_DIR"
+pwd
+```
+
+Создай unit-файл. В строке `WorkingDirectory` укажи тот же путь:
 
 ```bash
 sudo tee /etc/systemd/system/tg-bot-downloader.service >/dev/null <<'EOF'
@@ -89,8 +98,8 @@ Wants=network-online.target
 Type=oneshot
 WorkingDirectory=/path/to/your/project
 RemainAfterExit=yes
-ExecStart=/usr/bin/docker-compose up -d --build
-ExecStop=/usr/bin/docker-compose down
+ExecStart=/usr/bin/docker-compose -f /path/to/your/project/docker-compose.yml up -d --build
+ExecStop=/usr/bin/docker-compose -f /path/to/your/project/docker-compose.yml down
 TimeoutStartSec=0
 
 [Install]
