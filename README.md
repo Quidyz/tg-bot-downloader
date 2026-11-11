@@ -11,45 +11,34 @@
 - белый список — полный обход ограничений для своих;
 - статистика пользователей и скачиваний.
 
-## Подготовка
+## Подготовка и запуск
 
-1. Создай бота у [@BotFather](https://t.me/BotFather) → получи `BOT_TOKEN`.
-   Подключать платёжного провайдера не нужно — Telegram Stars работают сразу.
-2. Зайди на [my.telegram.org](https://my.telegram.org) → API development tools →
-   создай приложение → получи `TELEGRAM_API_ID` и `TELEGRAM_API_HASH`
-   (нужны локальному серверу Bot API для файлов больше 50 МБ).
+Кратко:
+
+1. Создай бота у [@BotFather](https://t.me/BotFather) и получи `BOT_TOKEN`.
+2. На [my.telegram.org](https://my.telegram.org) создай приложение и получи
+   `TELEGRAM_API_ID`/`TELEGRAM_API_HASH`.
 3. Узнай свой Telegram ID у [@userinfobot](https://t.me/userinfobot).
-4. Скопируй конфиг и заполни его:
-
-```bash
-cp .env.example .env
-```
-
-## Запуск (Docker)
-
-```bash
-docker-compose up --build -d
-```
+4. Создай `.env` из `.env.example` и заполни секреты.
+5. Запусти `docker-compose up -d --build`.
 
 Логи:
 
 ```bash
-docker-compose logs -f bot
+docker compose logs -f bot
 ```
 
 ## Запуск без Docker (для разработки)
 
-Нужны Python 3.12+, ffmpeg и deno в PATH (deno обязателен для YouTube),
-плюс `pip install gallery-dl` для картинок Pinterest и фото-твитов. Без локального Bot API сервера
-действует лимит отправки 50 МБ (оставь `TELEGRAM_API_BASE` пустым).
+Нужны Python 3.13+, uv, ffmpeg и deno в PATH (deno нужен для YouTube).
+Зависимости устанавливаются по lock-файлу:
 
 ```bash
-pip install -r requirements.txt
+uv sync
+uv run python -m bot.main
 ```
 
-```bash
-python -m bot.main
-```
+Без локального Bot API сервера Telegram ограничивает отправку файлов 50 МБ.
 
 ## Первичная настройка
 

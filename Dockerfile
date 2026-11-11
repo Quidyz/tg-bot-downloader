@@ -1,31 +1,34 @@
-FROM python:3.12-slim
+FROM python:3.13-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy \
+    PATH="/app/.venv/bin:$PATH"
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ffmpeg curl unzip ca-certificates git \
+    && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        curl \
+        ffmpeg \
+        git \
+        unzip \
     && rm -rf /var/lib/apt/lists/*
 
-# Deno — JS-рантайм для yt-dlp: без него YouTube не расшифровывает
-# ссылки на видео и отдаёт HTTP 403
+# Deno нужен yt-dlp для части YouTube-экстракторов.
 RUN curl -fsSL https://deno.land/install.sh | DENO_INSTALL=/usr/local sh
 
 WORKDIR /app
 
-# Playwright + Chromium — тяжёлый слой (100+ МБ). Ставим его ЗДЕСЬ, раньше и
-# отдельно от requirements.txt, чтобы обновление yt-dlp/gallery-dl/threads-dl
-# ниже не заставляло каждый раз перекачивать браузер заново.
-RUN pip install --no-cache-dir playwright \
-    && playwright install --with-deps chromium
+# uv устанавливает зависимости строго из pyproject.toml и uv.lock.
+COPY --from=ghcr.io/astral-sh/uv:0.13.7 /uv /uvx /usr/local/bin/
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-dev
 
-COPY requirements.txt .
-# yt-dlp, gallery-dl и threads-dl (git-зависимость в requirements.txt) часто
-# обновляются отдельно от этого файла — Docker не видит новых коммитов по
-# неизменившемуся requirements.txt и переиспользует старый закэшированный слой.
-# ARG ниже форсит пересборку ТОЛЬКО этого слоя (и Chromium выше не трогает):
-#   docker compose build --build-arg CACHEBUST=$(date +%s) bot
-ARG CACHEBUST=1
-RUN pip install --no-cache-dir -r requirements.txt \
-    && pip install --no-cache-dir -U yt-dlp gallery-dl
+# Chromium нужен threads-dl/Playwright.
+RUN playwright install --with-deps chromium
 
 COPY bot ./bot
+COPY scripts ./scripts
 
 CMD ["python", "-m", "bot.main"]
