@@ -25,7 +25,7 @@
 Логи:
 
 ```bash
-docker compose logs -f bot
+docker-compose logs -f bot
 ```
 
 ## Запуск без Docker (для разработки)
